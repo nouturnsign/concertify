@@ -22,7 +22,7 @@ async def play(ctx):
     vc = discord.utils.get(ctx.guild.voice_channels, name = 'General')
     await vc.connect()
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-    voice.play(discord.FFmpegPCMAudio("song.mp3"))
+    voice.play(discord.FFmpegOpusAudio("song.mp3"))
     
 @bot.command()
 async def dc(ctx):
