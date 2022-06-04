@@ -83,7 +83,7 @@ class Grabber:
     def download_track(self, track_url: str) -> str:
         """Download a track to ./tmp/track/[index].mp3. Return the relevant Spotify info."""
         
-        _os.system(f'spotdl -p track/{self.track_counter}.mp3 -o {self.PATH} --output-format mp3 {track_url}')
+        _os.system(f'spotdl -p track/{self.track_counter}.mp3 -o "{self.PATH}" --output-format mp3 {track_url}')
         _, _, info = self.get_lrc_json(track_url)
         self.cache[info] = self.track_counter
         self.track_counter += 1
