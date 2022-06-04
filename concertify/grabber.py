@@ -63,7 +63,7 @@ class Grabber:
     def get_audio_segment(self, info: str) -> _AudioSegment:
         """Get the audio segment associated with the Spotify info from the cache."""
         
-        return _AudioSegment.from_mp3(_os.path.join(self.PATH, f"track/{self.cache[info]}.mp3"))
+        return _AudioSegment.from_mp3(_os.path.join(self.PATH, "track", f"{self.cache[info]}.mp3"))
     
     def audio_generator(self, lrc_json: dict, info: str) -> _Generator[int, None, None]:
         """Yield each clip, joining empty/instrumental clips to the previous."""
