@@ -1,11 +1,13 @@
+from grabber import Grabber as _Grabber
+
+import os
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
-import os
 
 bot = commands.Bot(command_prefix=">")
 load_dotenv()
-token = os.environ['DISCORD_TOKEN']
+DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
 
 @bot.command()
 async def play(ctx):
@@ -21,6 +23,7 @@ async def play(ctx):
     await vc.connect()
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
     voice.play(discord.FFmpegPCMAudio("song.mp3"))
+    
 @bot.command()
 async def dc(ctx):
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
@@ -47,5 +50,16 @@ async def resume(ctx):
         voice.resume()
     else:
         await ctx.send("it's already resumed... are u deaf")
+        
+@bot.command()
+async def token(ctx, token: str):
+    grabber.set_token(token)
+    await ctx.send("Set token; this better work...")
+    
+@bot.command()
+async def clear(ctx):
+    grabber.clear_cache()
+    await ctx.send("Cleared the cache.")
 
-bot.run(token)
+grabber = _Grabber()
+bot.run(DISCORD_TOKEN)
