@@ -1,8 +1,10 @@
 import os as _os
 import shutil as _shutil
+from typing import Generator as _Generator
 import requests as _requests
 from urllib.parse import quote as _quote
 from bs4 import BeautifulSoup as _BeautifulSoup
+from pydub import AudioSegment as _AudioSegment
 
 class Grabber:
     """Grabs lrcs. Initialize with token."""
@@ -14,6 +16,8 @@ class Grabber:
         self.track_counter = 0
         # self.album_counter = 0
         self.headers = {}
+        self.cache = {}
+        self.PATH = _os.path.join(_os.getcwd(), 'tmp')
         if not keep_cache:
             self.clear_cache()
         
@@ -23,7 +27,6 @@ class Grabber:
         self.track_counter = 0
         # self.album_counter = 0
         self.cache = {}
-        self.PATH = _os.path.join(_os.getcwd(), 'tmp')
         if _os.path.exists(self.PATH):
             _shutil.rmtree(self.PATH)
         _os.mkdir(self.PATH)
@@ -56,6 +59,20 @@ class Grabber:
         lrc_json = lrc.json()
         
         return lrc.status_code, lrc_json, track_info
+    
+    def get_audio_segment(self, info: str) -> _AudioSegment:
+        """Get the audio segment associated with the Spotify info from the cache."""
+        
+        return _AudioSegment.from_mp3(_os.path.join(self.PATH, f"track/{self.cache[info]}.mp3"))
+    
+    def audio_generator(self, lrc_json: dict, info: str) -> _Generator[int, None, None]:
+        """Yield each clip, joining empty/instrumental clips to the previous."""
+        
+        lines = lrc_json['lyrics']['lines']
+        audio_segment = self.get_audio_segment(info)
+        timestamps = [0] + [int(line['startTimeMs']) for line in lines if line['words'] not in ('', '♪')] + [len(audio_segment)]
+        for i in range(1, len(timestamps)):
+            yield audio_segment[timestamps[i - 1] : timestamps[i]]
 
     def download(self, url: str) -> str:
         """Download from a Spotify url."""
