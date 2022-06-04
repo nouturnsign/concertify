@@ -1,3 +1,5 @@
+import os as _os
+import shutil as _shutil
 import requests as _requests
 from urllib.parse import quote as _quote
 from bs4 import BeautifulSoup as _BeautifulSoup
@@ -5,17 +7,40 @@ from bs4 import BeautifulSoup as _BeautifulSoup
 class Grabber:
     """Grabs lrcs. Initialize with token."""
     
-    def __init__(self, token: str):
-        """Get token from Network tab. """
+    def __init__(self, keep_cache=False):
+        """Create a new grabber, creating a new cache by default."""
+        
         # TODO: make this smarter
-        self.token = token
+        self.track_counter = 0
+        # self.album_counter = 0
+        self.headers = {}
+        if not keep_cache:
+            self.clear_cache()
+        
+    def clear_cache(self) -> None:
+        """Clear spotdl and grabber cache."""
+        
+        self.track_counter = 0
+        # self.album_counter = 0
+        self.cache = {}
+        self.PATH = _os.path.join(_os.getcwd(), 'tmp')
+        if _os.path.exists(self.PATH):
+            _shutil.rmtree(self.PATH)
+        _os.mkdir(self.PATH)
+        
+    def set_token(self, token: str) -> None:
+        """Get token using dev tools. Set the token. Required."""
+        
+        self.headers = {"Accept": "application/json",
+                        "App-Platform": "WebPlayer",
+                        "Authorization": f"Bearer {token}"}
 
-    def get_lrc_json(self, track_url: str) -> tuple[int, dict]:
-        """Get lrc as its status code and dictionary."""
+    def get_lrc_json(self, track_url: str) -> tuple[int, dict, str]:
+        """Get lrc as its status code, dictionary, and track info."""
 
         track = _requests.get(track_url)
         if track.status_code != 200:
-            return track.status_code, {}
+            return track.status_code, {}, ''
         soup = _BeautifulSoup(track.content, 'html.parser')
         track_info = soup.title.get_text()
         track_name = track_info[:track_info.index('-') - 1]
@@ -25,11 +50,32 @@ class Grabber:
         track_id = track_url[31:track_url.index('?')]
 
         lrc_url = f'https://spclient.wg.spotify.com/color-lyrics/v2/track/{track_id}/image/{image_encoded}?format=json&vocalRemoval=false'
-        lrc = _requests.get(lrc_url, headers = {"Accept": "application/json",
-                                                "App-Platform": "WebPlayer",
-                                                "Authorization": f"Bearer {self.token}"})
+        lrc = _requests.get(lrc_url, headers = self.headers)
         if lrc.status_code != 200:
-            return lrc.status_code, {}
+            return lrc.status_code, {}, track_info
         lrc_json = lrc.json()
         
-        return lrc.status_code, lrc_json
+        return lrc.status_code, lrc_json, track_info
+
+    def download(self, url: str) -> str:
+        """Download from a Spotify url."""
+        
+        if "track" in url:
+            return self.download_track(url)
+        
+    def download_track(self, track_url: str) -> str:
+        """Download a track to ./tmp/track/[index].mp3. Return the relevant Spotify info."""
+        
+        _os.system(f'spotdl -p track/{self.track_counter}.mp3 -o {self.PATH} --output-format mp3 {track_url}')
+        _, _, info = self.get_lrc_json(track_url)
+        self.cache[info] = self.track_counter
+        self.track_counter += 1
+        return info
+        
+    # def download_album(self, album_url: str) -> None:
+    #     """Download an album to ./tmp/song.mp3"""
+
+    #     _os.system(f"spotdl -p album/{self.album_counter}'{{artist}}/{{album}}/{{title}} - {{artist}}.mp3' -o {self.PATH} --output-format mp3 {album_url}")
+    #     _, _, info = self.get_lrc_json(album_url)
+    #     self.cache[info] = self.track_counter
+    #     self.track_counter += 1
