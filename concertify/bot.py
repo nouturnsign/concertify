@@ -1,34 +1,28 @@
 from grabber import Grabber as _Grabber
 import utils as _utils
 
-import os
-from dotenv import load_dotenv
+import os as _os
+from dotenv import load_dotenv as _load_dotenv
 from fuzzysearch import find_near_matches as _find_near_matches
-import discord
-from discord.ext import commands
+import discord as _discord
+from discord.ext import commands as _commands
 
-bot = commands.Bot(command_prefix=">")
-load_dotenv()
-DISCORD_TOKEN = os.environ['DISCORD_TOKEN']
+bot = _commands.Bot(command_prefix=">")
+_load_dotenv()
+DISCORD_TOKEN = _os.environ['DISCORD_TOKEN']
 
 @bot.command()
-async def play(ctx):
-    songfile = os.path.isfile("song.mp3")
-##    try:
-##      put something here later
-##        if song_there:
-##            os.remove("song.mp3")
-##    except PermissionError:
-##        await ctx.send("wait for this shit to finish or use a stop command to pussy out :)")
-    
-    vc = discord.utils.get(ctx.guild.voice_channels, name = 'General')
+async def demo(ctx):
+    demo_path = _os.path.join(_os.getcwd(), "demo.mp3")
+    assert _os.path.isfile(demo_path)
+    vc = _discord.utils.get(ctx.guild.voice_channels, name='General')
     await vc.connect()
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-    voice.play(discord.FFmpegOpusAudio("song.mp3"))
+    voice = _discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    voice.play(_discord.FFmpegOpusAudio(demo_path))
     
 @bot.command()
 async def dc(ctx):
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    voice = _discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice:
         if voice.is_connected():
             await voice.disconnect()
@@ -39,7 +33,7 @@ async def dc(ctx):
 
 @bot.command()
 async def pause(ctx):
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    voice = _discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice.is_playing():
         voice.pause()
     else:
@@ -47,7 +41,7 @@ async def pause(ctx):
 
 @bot.command()
 async def resume(ctx):
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    voice = _discord.utils.get(bot.voice_clients, guild=ctx.guild)
     if voice.is_paused():
         voice.resume()
     else:
@@ -74,14 +68,14 @@ async def concert(ctx, track_url: str):
     assert grabber.download(track_url) == info
     audio_generator = grabber.audio_generator(lrc_json, info)
     
-    vc = discord.utils.get(ctx.guild.voice_channels, name = 'General')
+    vc = _discord.utils.get(ctx.guild.voice_channels, name='General')
     await vc.connect()
-    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    voice = _discord.utils.get(bot.voice_clients, guild=ctx.guild)
     
     next(audio_generator).export(MP3_LOC, 'mp3')
     if voice.is_playing():
         voice.stop()
-    voice.play(discord.FFmpegOpusAudio(MP3_LOC))
+    voice.play(_discord.FFmpegOpusAudio(MP3_LOC))
     
     history = ['Concert over!']
     
@@ -92,7 +86,7 @@ async def concert(ctx, track_url: str):
             continue
         
         msg = await bot.wait_for("message")
-        while len(_find_near_matches(correct, (line := _utils.simplify(msg.content)), max_l_dist=_utils.MAX_TYPOS)) == 0:
+        while len(_find_near_matches(correct, (line := _utils.simplify(msg.content)), max_l_dist=_utils.MAX_TYP_os)) == 0:
             await ctx.send(msg.author.mention + " " + msg.content + " is incorrect!\n" + correct)
             msg = await bot.wait_for("message")
         history.append(msg.author.mention + " " + msg.content)
@@ -100,7 +94,7 @@ async def concert(ctx, track_url: str):
         next(audio_generator).export(MP3_LOC, 'mp3')
         if voice.is_playing():
             voice.stop()
-        voice.play(discord.FFmpegOpusAudio(MP3_LOC))
+        voice.play(_discord.FFmpegOpusAudio(MP3_LOC))
         
     await ctx.send('\n'.join(history))
 
