@@ -60,6 +60,46 @@ async def token(ctx, token: str):
 async def clear(ctx):
     grabber.clear_cache()
     await ctx.send("Cleared the cache.")
+    
+@bot.command()
+async def concert(ctx, track_url: str):
+    
+    MP3_LOC = grabber.PATH + '.mp3'
+    
+    status_code, lrc_json, info = grabber.get_lrc_json(track_url)
+    assert status_code == 200
+    assert grabber.download(track_url) == info
+    audio_generator = grabber.audio_generator(lrc_json, info)
+    
+    vc = discord.utils.get(ctx.guild.voice_channels, name = 'General')
+    await vc.connect()
+    voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
+    
+    next(audio_generator).export(MP3_LOC, 'mp3')
+    if voice.is_playing():
+        voice.stop()
+    voice.play(discord.FFmpegOpusAudio(MP3_LOC))
+    
+    history = ['Concert over!']
+    
+    for line in lrc_json['lyrics']['lines']:
+        
+        correct = line['words']
+        if correct in ('', '♪'):
+            continue
+        
+        msg = await bot.wait_for("message")
+        while msg.content != correct:
+            await ctx.send(msg.author.mention + " " + msg.content + " is incorrect!")
+            msg = await bot.wait_for("message")
+        history.append(msg.author.mention + " " + msg.content)
+
+        next(audio_generator).export(MP3_LOC, 'mp3')
+        if voice.is_playing():
+            voice.stop()
+        voice.play(discord.FFmpegOpusAudio(MP3_LOC))
+        
+    await ctx.send('\n'.join(history))
 
 grabber = _Grabber()
 bot.run(DISCORD_TOKEN)
