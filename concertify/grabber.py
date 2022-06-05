@@ -72,7 +72,7 @@ class Grabber:
         
         lines = lrc_json['lyrics']['lines']
         audio_segment = self.get_audio_segment(info)
-        timestamps = [0] + [int(line['startTimeMs']) for line in lines if _utils.simplify(line['words']) not in _utils.INSTRUMENTAL] + [len(audio_segment)]
+        timestamps = [0] + [int(line['startTimeMs']) for line in lines if _utils.simplify(line['words']) != ''] + [len(audio_segment)]
         for i in range(1, len(timestamps)):
             yield audio_segment[timestamps[i - 1] : timestamps[i]]
 

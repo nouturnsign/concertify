@@ -88,7 +88,7 @@ async def concert(ctx, track_url: str):
     for line in lrc_json['lyrics']['lines']:
         
         correct = _utils.simplify(line['words'])
-        if correct in _utils.INSTRUMENTAL:
+        if correct == '':
             continue
         
         msg = await bot.wait_for("message")
