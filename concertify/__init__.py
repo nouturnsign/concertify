@@ -1,1 +1,1 @@
-__all__ = ['grabber']
+__all__ = ['bot', 'grabber']
