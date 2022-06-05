@@ -1,7 +1,9 @@
 from grabber import Grabber as _Grabber
+import utils as _utils
 
 import os
 from dotenv import load_dotenv
+from fuzzysearch import find_near_matches as _find_near_matches
 import discord
 from discord.ext import commands
 
@@ -64,6 +66,7 @@ async def clear(ctx):
 @bot.command()
 async def concert(ctx, track_url: str):
     
+    # TODO: add command to change download link?
     MP3_LOC = grabber.PATH + '.mp3'
     
     status_code, lrc_json, info = grabber.get_lrc_json(track_url)
@@ -84,13 +87,13 @@ async def concert(ctx, track_url: str):
     
     for line in lrc_json['lyrics']['lines']:
         
-        correct = line['words']
-        if correct in ('', '♪'):
+        correct = _utils.simplify(line['words'])
+        if correct in _utils.INSTRUMENTAL:
             continue
         
         msg = await bot.wait_for("message")
-        while msg.content != correct:
-            await ctx.send(msg.author.mention + " " + msg.content + " is incorrect!")
+        while len(_find_near_matches(correct, (line := _utils.simplify(msg.content)), max_l_dist=_utils.MAX_TYPOS)) == 0:
+            await ctx.send(msg.author.mention + " " + msg.content + " is incorrect!\n" + correct)
             msg = await bot.wait_for("message")
         history.append(msg.author.mention + " " + msg.content)
 
