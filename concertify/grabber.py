@@ -3,6 +3,7 @@ import utils as _utils
 import os as _os
 import shutil as _shutil
 from typing import Generator as _Generator
+import logging as _logging
 import requests as _requests
 from urllib.parse import quote as _quote
 from bs4 import BeautifulSoup as _BeautifulSoup
@@ -45,8 +46,10 @@ class Grabber:
 
         track = _requests.get(track_url)
         if track.status_code != 200:
+            _logging.warning(f'Failed to download track info with status code {track.status_code}. Check the track url (404).')
             return track.status_code, {}, ''
         soup = _BeautifulSoup(track.content, 'html.parser')
+        
         track_info = soup.title.get_text()
         track_name = track_info[:track_info.index('-') - 1]
         image_url = soup.find('img', {'alt': track_name})['src'] # check for other possible urls?
@@ -57,9 +60,11 @@ class Grabber:
         lrc_url = f'https://spclient.wg.spotify.com/color-lyrics/v2/track/{track_id}/image/{image_encoded}?format=json&vocalRemoval=false'
         lrc = _requests.get(lrc_url, headers = self.headers)
         if lrc.status_code != 200:
+            _logging.warning(f'Could not download lrc with status code {lrc.status_code}. Try replacing the token (401), or check that the song has lyrics (404).')
             return lrc.status_code, {}, track_info
         lrc_json = lrc.json()
         
+        _logging.info('Successfully downloaded track and lrc.')
         return lrc.status_code, lrc_json, track_info
     
     def get_audio_segment(self, info: str) -> _AudioSegment:
@@ -70,7 +75,11 @@ class Grabber:
     def audio_generator(self, lrc_json: dict, info: str) -> _Generator[int, None, None]:
         """Yield each clip, joining empty/instrumental clips to the previous."""
         
-        lines = lrc_json['lyrics']['lines']
+        try:
+            lines = lrc_json['lyrics']['lines']
+        except Exception:
+            _logging.warning(f'lrc json associated with {info} does not have lyrics or lines.')
+            lines = []
         audio_segment = self.get_audio_segment(info)
         timestamps = [0] + [int(line['startTimeMs']) for line in lines if _utils.simplify(line['words']) != ''] + [len(audio_segment)]
         for i in range(1, len(timestamps)):
@@ -86,7 +95,10 @@ class Grabber:
         """Download a track to ./tmp/track/[index].mp3. Return the relevant Spotify info."""
         
         _os.system(f'spotdl -p track/{self.track_counter}.mp3 -o "{self.PATH}" --output-format mp3 {track_url}')
-        _, _, info = self.get_lrc_json(track_url)
+        status_code, _, info = self.get_lrc_json(track_url)
+        if status_code != 200:
+            _logging.warning(f'Failed to download track with status code {status_code}. Check other logs.')
+            return info
         self.cache[info] = self.track_counter
         self.track_counter += 1
         return info
