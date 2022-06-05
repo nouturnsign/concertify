@@ -29,13 +29,13 @@ async def play(ctx):
 @bot.command()
 async def dc(ctx):
     voice = discord.utils.get(bot.voice_clients, guild=ctx.guild)
-    if voice:
+    if voice is not None:
         if voice.is_connected():
             await voice.disconnect()
         else:
-            await ctx.send('the bot already isnt connected to the voice channel, u retard')
+            await ctx.send('The bot isnt connected to the voice channel')
     else:
-        await ctx.send('the bot already isnt connected to the voice channel, u retard')
+        await ctx.send('The bot already isnt connected to the voice channel')
 
 @bot.command()
 async def pause(ctx):
