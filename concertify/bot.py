@@ -65,7 +65,8 @@ async def concert(ctx, track_url: str):
     
     status_code, lrc_json, info = grabber.get_lrc_json(track_url)
     assert status_code == 200
-    assert grabber.download(track_url) == info
+    # assert grabber.download(track_url) == info
+    grabber.download(track_url)
     audio_generator = grabber.audio_generator(lrc_json, info)
     
     vc = _discord.utils.get(ctx.guild.voice_channels, name='General')
@@ -86,8 +87,8 @@ async def concert(ctx, track_url: str):
             continue
         
         msg = await bot.wait_for("message")
-        while len(_find_near_matches(correct, (line := _utils.simplify(msg.content)), max_l_dist=_utils.MAX_TYP_os)) == 0:
-            await ctx.send(msg.author.mention + " " + msg.content + " is incorrect!\n" + correct)
+        while len(_find_near_matches(correct, (guess := _utils.simplify(msg.content)), max_l_dist=_utils.MAX_TYPOS)) == 0:
+            await ctx.send(f"{msg.author.mention} {msg.content} is incorrect!")
             msg = await bot.wait_for("message")
         history.append(msg.author.mention + " " + msg.content)
 
